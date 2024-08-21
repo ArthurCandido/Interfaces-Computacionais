@@ -12,7 +12,7 @@ void setup() {
   radio.openReadingPipe(1, 0xF0F0F0F0E1LL); // Endereço de leitura
   radio.setPALevel(RF24_PA_HIGH);
   radio.setDataRate(RF24_250KBPS);
-  radio.setChannel(0x4c);
+  radio.setChannel(100);
   radio.startListening();
 }
 

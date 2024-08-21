@@ -23,7 +23,7 @@ function fetchData() {
             console.error('Erro ao buscar dados:', error);
             document.getElementById('umidade').textContent = 'Erro de conexão';
             document.getElementById('status').textContent = '';
-        });
+        });        
 }
 
 setInterval(fetchData, 2000);
