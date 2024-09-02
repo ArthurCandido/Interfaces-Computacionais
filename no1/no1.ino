@@ -2,38 +2,45 @@
 #include <nRF24L01.h>
 #include <RF24.h>
 
-RF24 radio(9, 10); // CE, CSN
+#define CE_PIN 7
+#define CSN_PIN 8
+#define LED_VERDE 3
+#define LED_VERMELHO 4
 
-const int ledVermelhoPin = 8; 
-const int ledVerdePin = 7; 
-int umidade = 0; 
+RF24 radio(CE_PIN, CSN_PIN);
+uint64_t address = 0xF0F0F0F0E1LL;
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   radio.begin();
-  radio.openWritingPipe(0xF0F0F0F0E1LL); 
-  radio.setPALevel(RF24_PA_HIGH);
-  radio.setDataRate(RF24_250KBPS);
+  radio.setPALevel(RF24_PA_LOW);
   radio.setChannel(100);
-  
-  pinMode(ledVermelhoPin, OUTPUT);
-  pinMode(ledVerdePin, OUTPUT);
-  digitalWrite(ledVermelhoPin, LOW); 
-  digitalWrite(ledVerdePin, LOW);
+  radio.setDataRate(RF24_2MBPS);
+  radio.setAutoAck(false);
+  radio.openWritingPipe(address);
+  pinMode(LED_VERDE, OUTPUT);
+  pinMode(LED_VERMELHO, OUTPUT);
 }
 
 void loop() {
-  umidade = 1; 
+  int umidade = random(0, 101); // Simulação de umidade
 
-  bool umidadeBaixa = umidade >= 0 && umidade <= 60;
-
-  if (umidadeBaixa) {
-    digitalWrite(ledVermelhoPin, HIGH); 
-    digitalWrite(ledVerdePin, LOW); 
+  if (umidade <= 60) {
+    digitalWrite(LED_VERMELHO, HIGH);
+    digitalWrite(LED_VERDE, LOW);
   } else {
-    digitalWrite(ledVermelhoPin, LOW); 
-    digitalWrite(ledVerdePin, HIGH); 
+    digitalWrite(LED_VERMELHO, LOW);
+    digitalWrite(LED_VERDE, HIGH);
+  }
 
-  radio.write(&umidadeBaixa, sizeof(umidadeBaixa)); 
-  delay(10000); 
-}}
+  bool report = radio.write(&umidade, sizeof(umidade));
+
+  if (report) {
+    Serial.print(F("Transmissão bem-sucedida! Umidade enviada: "));
+    Serial.println(umidade);
+  } else {
+    Serial.println(F("Falha na transmissão"));
+  }
+
+  delay(2000);  // Envia a umidade a cada 2 segundos
+}
