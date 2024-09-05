@@ -14,54 +14,51 @@ except serial.SerialException as e:
     ser = None
 
 def ler_serial():
-    global umidade
+    global umidade 
+    umidade = 0 
     if ser:
         while True:
             if ser.in_waiting > 0:
-                umidade = ser.readline().decode('utf-8').strip()
-                print(f"Umidade lida: {umidade}")
+                leitura = ser.readline().decode('utf-8').strip()
+                print(f"Leitura da porta serial: {leitura}")
+                umidade = int(leitura)
 
-# Inicia a thread para ler a porta serial
-if ser:
-    threading.Thread(target=ler_serial, daemon=True).start()
-    print("Thread de leitura da porta serial iniciada.")
+                print(f"Umidade atualizada: {umidade}")
 
-# Rota para retornar a umidade atual em formato JSON
-@app.route('/umidade')
-def get_umidade():
-    global umidade
-    print(f"Enviando umidade: {umidade}")
-    return jsonify(umidade=umidade)
+# Cria e inicia a thread para leitura da porta serial
+serial_thread = threading.Thread(target=ler_serial, daemon=True)
+serial_thread.start()
 
-# Rota para a página principal
 @app.route('/')
-def home():
+def index():
     return render_template_string('''
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Umidade Atual</title>
-            <script>
-                function atualizarUmidade() {
-                    fetch('/umidade')
-                        .then(response => response.json())
-                        .then(data => {
-                            document.getElementById('umidade').innerText = data.umidade;
-                        })
-                        .catch(error => console.error('Erro ao atualizar a umidade:', error));
-                }
-                setInterval(atualizarUmidade, 2000); // Atualiza a cada 2 segundos
-            </script>
-        </head>
-        <body>
-            <h1>Umidade Atual</h1>
-            <p id="umidade">Carregando...</p>
-        </body>
+        <html>
+            <head>
+                <title>Monitor de Umidade</title>
+                <script>
+                    function atualizarUmidade() {
+                        fetch('/umidade')
+                            .then(response => response.json())
+                            .then(data => {
+                             document.getElementById('umidade').innerText = `Umidade recebida: ${data.umidade}%`;
+                            
+                            })
+                            .catch(error => console.error('Erro ao buscar a umidade:', error));
+                    }
+                    setInterval(atualizarUmidade, 2000); 
+                </script>
+            </head>
+            <body>
+                <h1>Umidade Atual</h1>
+                <p id="umidade">Carregando...</p>
+               
+            </body>
         </html>
     ''')
 
+@app.route('/umidade')
+def umidade_api():
+    return jsonify({'umidade': umidade})
+
 if __name__ == '__main__':
-    print("Iniciando o servidor Flask...")
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000)
