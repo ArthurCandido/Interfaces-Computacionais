@@ -1,3 +1,8 @@
+#define MSG 0
+#define ACK 1
+#define RTS 2
+#define CTS 3
+
 #include <SPI.h>
 #include <nRF24L01.h>
 #include <RF24.h>
@@ -10,7 +15,8 @@
 RF24 radio(CE_PIN, CSN_PIN);
 uint64_t address = 0xF0F0F0F0E1LL;
 
-void setup() {
+void setup()
+{
   Serial.begin(115200);
   radio.begin();
   radio.setPALevel(RF24_PA_LOW);
@@ -18,29 +24,68 @@ void setup() {
   radio.setDataRate(RF24_2MBPS);
   radio.setAutoAck(false);
   radio.openWritingPipe(address);
+  radio.openReadingPipe(1, address);
+  radio.startListening();
   pinMode(LED_VERDE, OUTPUT);
   pinMode(LED_VERMELHO, OUTPUT);
 }
 
-void loop() {
-  int umidade = random(0, 101); // Simulação de umidade
+void loop()
+{
+  int umidade = random(0, 101); // random umidade
 
-  if (umidade <= 60) {
+  if (umidade <= 60)
+  {
     digitalWrite(LED_VERMELHO, HIGH);
     digitalWrite(LED_VERDE, LOW);
-  } else {
+  }
+  else
+  {
     digitalWrite(LED_VERMELHO, LOW);
     digitalWrite(LED_VERDE, HIGH);
   }
 
-  bool report = radio.write(&umidade, sizeof(umidade));
+  // Estrutura da mensagem: [tipo msg, valor da umidade]
+  int mensagem[2] = {MSG, umidade};
 
-  if (report) {
-    Serial.print(F("Transmissão bem-sucedida! Umidade enviada: "));
+  // envia a mensagem e o valor da umidade
+  radio.stopListening();
+  bool report = radio.write(&mensagem, sizeof(mensagem));
+  radio.startListening();
+
+  if (report)
+  {
+    Serial.print(F("MSG enviada com sucesso! Umidade enviada: "));
     Serial.println(umidade);
-  } else {
+
+    // Espera o ACK
+    unsigned long inicio = millis();
+    bool ackRecebido = false;
+    while (millis() - inicio < 500)
+    {
+      if (radio.available())
+      {
+        int resposta;
+        radio.read(&resposta, sizeof(resposta));
+
+        if (resposta == ACK)
+        {
+          Serial.println(F("ACK recebido!"));
+          ackRecebido = true;
+          break;
+        }
+      }
+    }
+
+    if (!ackRecebido)
+    {
+      Serial.println(F("Nenhum ACK recebido."));
+    }
+  }
+  else
+  {
     Serial.println(F("Falha na transmissão"));
   }
 
-  delay(2000);  // Envia a umidade a cada 2 segundos
+  delay(5000);
 }

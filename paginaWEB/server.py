@@ -7,7 +7,7 @@ umidade = 0
 
 # Configura a porta serial
 try:
-    ser = serial.Serial('COM5', 115200)  # Substitua 'COM5' pela sua porta serial
+    ser = serial.Serial('COM5', 115200)
     print("Porta serial aberta com sucesso.")
 except serial.SerialException as e:
     print(f"Erro ao abrir a porta serial: {e}")
@@ -21,11 +21,10 @@ def ler_serial():
             if ser.in_waiting > 0:
                 leitura = ser.readline().decode('utf-8').strip()
                 print(f"Leitura da porta serial: {leitura}")
-                umidade = int(leitura)
+                umidade = leitura
 
                 print(f"Umidade atualizada: {umidade}")
 
-# Cria e inicia a thread para leitura da porta serial
 serial_thread = threading.Thread(target=ler_serial, daemon=True)
 serial_thread.start()
 
@@ -40,7 +39,7 @@ def index():
                         fetch('/umidade')
                             .then(response => response.json())
                             .then(data => {
-                             document.getElementById('umidade').innerText = `Umidade recebida: ${data.umidade}%`;
+                             document.getElementById('umidade').innerText = `${data.umidade}%`;
                             
                             })
                             .catch(error => console.error('Erro ao buscar a umidade:', error));
